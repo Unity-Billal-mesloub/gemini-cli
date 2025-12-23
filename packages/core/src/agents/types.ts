@@ -93,9 +93,21 @@ export interface RemoteAgentDefinition<
   agentCardUrl: string;
 }
 
+export interface ProgrammaticAgentDefinition<
+  TOutput extends z.ZodTypeAny = z.ZodUnknown,
+> extends BaseAgentDefinition<TOutput> {
+  kind: 'programmatic';
+  /**
+   * The name of the tool that implements this agent's logic.
+   * This tool must be available in the tool registry.
+   */
+  toolName: string;
+}
+
 export type AgentDefinition<TOutput extends z.ZodTypeAny = z.ZodUnknown> =
   | LocalAgentDefinition<TOutput>
-  | RemoteAgentDefinition<TOutput>;
+  | RemoteAgentDefinition<TOutput>
+  | ProgrammaticAgentDefinition<TOutput>;
 
 /**
  * Configures the initial prompt for the agent.

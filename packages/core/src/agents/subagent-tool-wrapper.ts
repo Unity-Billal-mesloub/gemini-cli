@@ -15,6 +15,7 @@ import type { AgentDefinition, AgentInputs } from './types.js';
 import { convertInputConfigToJsonSchema } from './schema-utils.js';
 import { LocalSubagentInvocation } from './local-invocation.js';
 import { RemoteAgentInvocation } from './remote-invocation.js';
+import { ProgrammaticAgentInvocation } from './programmatic-invocation.js';
 import type { MessageBus } from '../confirmation-bus/message-bus.js';
 
 /**
@@ -71,6 +72,14 @@ export class SubagentToolWrapper extends BaseDeclarativeTool<
     const definition = this.definition;
     if (definition.kind === 'remote') {
       return new RemoteAgentInvocation(definition, params, this.messageBus);
+    }
+    if (definition.kind === 'programmatic') {
+      return new ProgrammaticAgentInvocation(
+        definition,
+        this.config,
+        params,
+        this.messageBus,
+      );
     }
 
     return new LocalSubagentInvocation(

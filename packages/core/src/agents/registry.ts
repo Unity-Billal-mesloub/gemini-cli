@@ -11,6 +11,7 @@ import type { AgentDefinition } from './types.js';
 import { loadAgentsFromDirectory } from './toml-loader.js';
 import { CodebaseInvestigatorAgent } from './codebase-investigator.js';
 import { IntrospectionAgent } from './introspection-agent.js';
+import { BrowserAgentDefinition } from './browser/definition.js';
 import { type z } from 'zod';
 import { debugLogger } from '../utils/debugLogger.js';
 import {
@@ -141,6 +142,14 @@ export class AgentRegistry {
     // Register the introspection agent if it's explicitly enabled.
     if (introspectionSettings.enabled) {
       this.registerAgent(IntrospectionAgent);
+    }
+
+    // Register Browser Agent if agents are enabled
+    if (this.config.isAgentsEnabled()) {
+      debugLogger.log('[AgentRegistry] Registering Browser Agent');
+      this.registerAgent(BrowserAgentDefinition);
+    } else {
+      debugLogger.log('[AgentRegistry] Agents not enabled, skipping Browser Agent registration');
     }
   }
 

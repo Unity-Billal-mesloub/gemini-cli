@@ -31,6 +31,7 @@ import { WriteFileTool } from '../tools/write-file.js';
 import { WebFetchTool } from '../tools/web-fetch.js';
 import { MemoryTool, setGeminiMdFilename } from '../tools/memoryTool.js';
 import { WebSearchTool } from '../tools/web-search.js';
+import { BrowserTool } from '../tools/browserTool.js';
 import { GeminiClient } from '../core/client.js';
 import { BaseLlmClient } from '../core/baseLlmClient.js';
 import type { HookDefinition, HookEventName } from '../hooks/types.js';
@@ -528,6 +529,7 @@ export class Config {
     this.model = params.model;
     this._activeModel = params.model;
     this.enableAgents = params.enableAgents ?? false;
+    debugLogger.log(`[Config] enableAgents: ${this.enableAgents}`);
     this.experimentalJitContext = params.experimentalJitContext ?? false;
     this.modelAvailabilityService = new ModelAvailabilityService();
     this.previewFeatures = params.previewFeatures ?? undefined;
@@ -1672,6 +1674,11 @@ export class Config {
     registerCoreTool(WebSearchTool, this);
     if (this.getUseWriteTodos()) {
       registerCoreTool(WriteTodosTool, this);
+    }
+
+    // Register BrowserTool if agents are enabled
+    if (this.isAgentsEnabled()) {
+      registerCoreTool(BrowserTool, this.geminiClient);
     }
 
     // Register Subagents as Tools
