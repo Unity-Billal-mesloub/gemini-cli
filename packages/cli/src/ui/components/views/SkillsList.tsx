@@ -33,15 +33,12 @@ export const SkillsList: React.FC<SkillsListProps> = ({
         <Text
           bold
           color={skill.disabled ? theme.text.secondary : theme.text.accent}
-          dimColor={skill.disabled}
         >
           {skill.name}
         </Text>
         {showDescriptions && skill.description && (
           <Box marginLeft={2}>
-            <Text color={theme.text.secondary} dimColor={skill.disabled}>
-              {skill.description}
-            </Text>
+            <Text color={theme.text.secondary}>{skill.description}</Text>
           </Box>
         )}
       </Box>
@@ -62,15 +59,13 @@ export const SkillsList: React.FC<SkillsListProps> = ({
 
       {enabledSkills.length > 0 && disabledSkills.length > 0 && (
         <Box marginY={1}>
-          <Text color={theme.text.secondary} dimColor>
-            {'-'.repeat(20)}
-          </Text>
+          <Text color={theme.text.secondary}>{'-'.repeat(20)}</Text>
         </Box>
       )}
 
       {disabledSkills.length > 0 && (
         <Box flexDirection="column">
-          <Text bold color={theme.text.secondary} dimColor>
+          <Text bold color={theme.text.secondary}>
             Disabled Skills:
           </Text>
           <Box height={1} />
