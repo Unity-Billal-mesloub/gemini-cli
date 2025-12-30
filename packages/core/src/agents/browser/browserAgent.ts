@@ -30,11 +30,11 @@ const semanticTools: Tool[] = [
     functionDeclarations: [
       {
         name: 'navigate',
-        description: 'Navigate to a specific URL.',
+        description: 'Navigates the browser to a specific URL.',
         parameters: {
           type: Type.OBJECT,
           properties: {
-            url: { type: Type.STRING, description: 'The URL to navigate to' },
+            url: { type: Type.STRING, description: 'The URL to visit' },
           },
           required: ['url'],
         },
@@ -51,6 +51,25 @@ const semanticTools: Tool[] = [
               description:
                 'The uid of the element from the accessibility tree (e.g., "87_4" for a button)',
             },
+            dblClick: {
+              type: Type.BOOLEAN,
+              description: 'Set to true for double clicks. Default is false.',
+            },
+          },
+          required: ['uid'],
+        },
+      },
+      {
+        name: 'hover',
+        description: 'Hover over the provided element.',
+        parameters: {
+          type: Type.OBJECT,
+          properties: {
+            uid: {
+              type: Type.STRING,
+              description:
+                'The uid of the element from the accessibility tree (e.g., "87_4" for a button)',
+            },
           },
           required: ['uid'],
         },
@@ -58,40 +77,41 @@ const semanticTools: Tool[] = [
       {
         name: 'fill',
         description:
-          'Fill a text input field using its uid from the accessibility tree snapshot.',
+          'Type text into a input, text area or select an option from a <select> element.',
         parameters: {
           type: Type.OBJECT,
           properties: {
             uid: {
               type: Type.STRING,
-              description:
-                'The uid of the text input element from the accessibility tree',
+              description: 'The uid of the element (input/select)',
             },
-            value: { type: Type.STRING, description: 'The text to enter' },
+            value: {
+              type: Type.STRING,
+              description: 'The value to fill in',
+            },
           },
           required: ['uid', 'value'],
         },
       },
       {
         name: 'fill_form',
-        description:
-          'Fill multiple form fields at once. Use this to efficiently fill login forms or checkout forms.',
+        description: 'Fill out multiple form elements at once.',
         parameters: {
           type: Type.OBJECT,
           properties: {
             elements: {
               type: Type.ARRAY,
-              description: 'Array of elements to fill',
+              description: 'Elements from snapshot to fill out.',
               items: {
                 type: Type.OBJECT,
                 properties: {
                   uid: {
                     type: Type.STRING,
-                    description: 'The uid of the form field',
+                    description: 'The uid of the element to fill out',
                   },
                   value: {
                     type: Type.STRING,
-                    description: 'The value to fill',
+                    description: 'Value for the element',
                   },
                 },
                 required: ['uid', 'value'],
@@ -99,6 +119,25 @@ const semanticTools: Tool[] = [
             },
           },
           required: ['elements'],
+        },
+      },
+      {
+        name: 'upload_file',
+        description: 'Upload a file through a provided element.',
+        parameters: {
+          type: Type.OBJECT,
+          properties: {
+            uid: {
+              type: Type.STRING,
+              description:
+                'The uid of the file input element or an element that will open file chooser',
+            },
+            filePath: {
+              type: Type.STRING,
+              description: 'The local path of the file to upload',
+            },
+          },
+          required: ['uid', 'filePath'],
         },
       },
       {
@@ -187,12 +226,28 @@ const semanticTools: Tool[] = [
         parameters: {
           type: Type.OBJECT,
           properties: {
-            script: {
+            function: {
               type: Type.STRING,
-              description: 'The JavaScript code to execute (function body)',
+              description:
+                'The JavaScript code to execute. If "args" are provided, this MUST be a valid function expression (e.g., "() => { ... }"). If "args" are NOT provided, this can be a function expression OR a block of statements (script).',
+            },
+            args: {
+              type: Type.ARRAY,
+              description:
+                'An optional list of arguments to pass to the function.',
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  uid: {
+                    type: Type.STRING,
+                    description:
+                      'The uid of an element on the page from the page content snapshot',
+                  },
+                },
+              },
             },
           },
-          required: ['script'],
+          required: ['function'],
         },
       },
       {
@@ -230,14 +285,14 @@ const semanticTools: Tool[] = [
       {
         name: 'delegate_to_visual_agent',
         description:
-          'Delegate a task that requires visual interaction (coordinate-based clicks, complex drag-and-drop, or when elements have no selectors) to a specialized visual agent.',
+          'Delegate a task that requires visual interaction (coordinate-based clicks, complex drag-and-drop) OR visual identification (finding elements by color, layout, or visual appearance not in the AX tree).',
         parameters: {
           type: Type.OBJECT,
           properties: {
             instruction: {
               type: Type.STRING,
               description:
-                'Clear instruction for the visual agent (e.g., "Click the blue submit button in the top right").',
+                'Clear instruction for the visual agent (e.g., "Click the blue submit button", "Find the yellow letter").',
             },
           },
           required: ['instruction'],
@@ -355,7 +410,7 @@ Use these uid values directly with your tools:
 - fill(uid="87_2", value="john") to fill a text field
 - fill_form(elements=[{uid: "87_2", value: "john"}, {uid: "87_3", value: "pass"}]) to fill multiple fields at once
 
-For complex visual interactions (coordinate-based clicks, dragging), use delegate_to_visual_agent with a clear instruction.
+For complex visual interactions (coordinate-based clicks, dragging) OR when you need to identify elements by visual attributes not present in the AX tree (e.g., "click the yellow button", "find the red error message"), use delegate_to_visual_agent with a clear instruction.
 
 CRITICAL: When you have fully completed the user's task, you MUST call the complete_task tool with a summary of what you accomplished. Do NOT just return text - you must explicitly call complete_task to exit the loop.`;
 
@@ -371,6 +426,13 @@ CRITICAL: When you have fully completed the user's task, you MUST call the compl
     try {
       // Ensure browser connection
       await this.browserManager.ensureConnection();
+
+      // Initialize persistent overlay
+      await this.browserTools.updateBorderOverlay({
+        active: true,
+        capturing: false,
+      });
+
       status = 'Browser connected. Starting task loop...';
       debugLogger.log(status);
     } catch (e) {
@@ -715,6 +777,15 @@ CRITICAL: When you have fully completed the user's task, you MUST call the compl
                   (
                     await client.callTool(
                       'fill_form',
+                      fnArgs as unknown as Record<string, unknown>,
+                    )
+                  ).content || [];
+                break;
+              case 'upload_file':
+                rawContent =
+                  (
+                    await client.callTool(
+                      'upload_file',
                       fnArgs as unknown as Record<string, unknown>,
                     )
                   ).content || [];

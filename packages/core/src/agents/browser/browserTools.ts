@@ -21,7 +21,7 @@ export class BrowserTools {
     // Interpolate the message directly into the script since MCP evaluate_script
     // doesn't support passing arbitrary primitive args.
     const safeMessage = JSON.stringify(message);
-    const scriptWithMsg = `() => {
+    const scriptWithMsg = `(() => {
       const msg = ${safeMessage};
       let overlay = document.getElementById('gemini-overlay');
       if (!overlay) {
@@ -45,7 +45,7 @@ export class BrowserTools {
         document.body.appendChild(overlay);
       }
       overlay.innerText = msg;
-    }`;
+    })()`;
 
     const client = await this.browserManager.getMcpClient();
     try {
@@ -60,7 +60,7 @@ export class BrowserTools {
     capturing: boolean;
   }): Promise<void> {
     const safeOptions = JSON.stringify(options);
-    const script = `() => {
+    const script = `(() => {
         const { active, capturing } = ${safeOptions};
         // 1. Inject CSS if not present
         if (!document.getElementById('gemini-border-style')) {
@@ -108,6 +108,7 @@ export class BrowserTools {
         if (!container) {
           container = document.createElement('div');
           container.id = 'preact-border-container';
+          container.setAttribute('aria-hidden', 'true');
           document.body.appendChild(container);
         }
 
@@ -123,7 +124,7 @@ export class BrowserTools {
           container.classList.add('hidden');
           container.classList.remove('animate-breathing');
         }
-    }`;
+    })()`;
     const client = await this.browserManager.getMcpClient();
     try {
       await client.callTool('evaluate_script', { function: script });
@@ -133,12 +134,12 @@ export class BrowserTools {
   }
 
   async removeOverlay(): Promise<void> {
-    const script = `() => {
+    const script = `(() => {
         const overlay = document.getElementById('gemini-overlay');
         if (overlay) {
           overlay.remove();
         }
-    }`;
+    })()`;
     const client = await this.browserManager.getMcpClient();
     try {
       await client.callTool('evaluate_script', { function: script });
@@ -258,7 +259,7 @@ export class BrowserTools {
         const el = document.elementFromPoint(x, y);
         if (!el) return null;
         const text =
-          (el as HTMLElement).innerText?.trim() ||
+          (el as HTMLElement).innerText?.replace(/\s+/g, ' ').trim() ||
           el.getAttribute('aria-label') ||
           el.getAttribute('placeholder') ||
           el.getAttribute('title') ||
@@ -291,6 +292,7 @@ export class BrowserTools {
       await page.mouse.click(actualX, actualY);
       await this.animateClick(page);
       await new Promise((resolve) => setTimeout(resolve, 500));
+      await this.removeOverlay();
       return { output: 'Clicked' };
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : String(e);
@@ -335,6 +337,7 @@ export class BrowserTools {
         await page.keyboard.press('Enter');
       }
       await new Promise((resolve) => setTimeout(resolve, 500));
+      await this.removeOverlay();
       return { output: `Typed "${text}"` };
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : String(e);
@@ -369,6 +372,7 @@ export class BrowserTools {
       await page.mouse.move(actualDestX, actualDestY);
       await page.mouse.up();
       await this.animateClick(page);
+      await this.removeOverlay();
 
       return { output: `Dragged from ${x},${y} to ${destX},${destY}` };
     } catch (e: unknown) {
@@ -423,6 +427,7 @@ export class BrowserTools {
     }
 
     await new Promise((resolve) => setTimeout(resolve, 200));
+    await this.removeOverlay();
     return { output: `Scrolled ${direction} by ${amount}` };
   }
 
