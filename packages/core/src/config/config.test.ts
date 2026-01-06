@@ -1204,6 +1204,90 @@ describe('Server Config (config.ts)', () => {
       expect(mockCoreEvents.emitFeedback).not.toHaveBeenCalled();
     });
   });
+
+  describe('BrowserAgentConfig', () => {
+    it('should return default browser agent config when not provided', () => {
+      const config = new Config(baseParams);
+      const browserConfig = config.getBrowserAgentConfig();
+
+      expect(browserConfig.enabled).toBe(false);
+      expect(browserConfig.model).toBeUndefined();
+      expect(browserConfig.customConfig.sessionMode).toBe('isolated');
+      expect(browserConfig.customConfig.headless).toBe(false);
+      expect(browserConfig.customConfig.chromeProfilePath).toBeUndefined();
+      expect(browserConfig.customConfig.visualModel).toBeUndefined();
+      expect(browserConfig.customConfig.allowedDomains).toBeUndefined();
+      expect(browserConfig.customConfig.confirmSensitiveActions).toBe(true);
+      expect(browserConfig.customConfig.maxActionsPerTask).toBe(100);
+    });
+
+    it('should return custom browser agent config from agents.overrides', () => {
+      const params: ConfigParameters = {
+        ...baseParams,
+        agents: {
+          overrides: {
+            browser_agent: {
+              enabled: true,
+              modelConfig: { model: 'custom-model' },
+              customConfig: {
+                sessionMode: 'existing',
+                headless: true,
+                chromeProfilePath: '/path/to/profile',
+                visualModel: 'custom-visual-model',
+                allowedDomains: ['example.com', 'test.org'],
+                confirmSensitiveActions: false,
+                maxActionsPerTask: 50,
+              },
+            },
+          },
+        },
+      };
+      const config = new Config(params);
+      const browserConfig = config.getBrowserAgentConfig();
+
+      expect(browserConfig.enabled).toBe(true);
+      expect(browserConfig.model).toBe('custom-model');
+      expect(browserConfig.customConfig.sessionMode).toBe('existing');
+      expect(browserConfig.customConfig.headless).toBe(true);
+      expect(browserConfig.customConfig.chromeProfilePath).toBe(
+        '/path/to/profile',
+      );
+      expect(browserConfig.customConfig.visualModel).toBe(
+        'custom-visual-model',
+      );
+      expect(browserConfig.customConfig.allowedDomains).toEqual([
+        'example.com',
+        'test.org',
+      ]);
+      expect(browserConfig.customConfig.confirmSensitiveActions).toBe(false);
+      expect(browserConfig.customConfig.maxActionsPerTask).toBe(50);
+    });
+
+    it('should apply defaults for partial custom config', () => {
+      const params: ConfigParameters = {
+        ...baseParams,
+        agents: {
+          overrides: {
+            browser_agent: {
+              enabled: true,
+              customConfig: {
+                headless: true,
+              },
+            },
+          },
+        },
+      };
+      const config = new Config(params);
+      const browserConfig = config.getBrowserAgentConfig();
+
+      expect(browserConfig.enabled).toBe(true);
+      expect(browserConfig.customConfig.headless).toBe(true);
+      // Defaults for unspecified fields
+      expect(browserConfig.customConfig.sessionMode).toBe('isolated');
+      expect(browserConfig.customConfig.confirmSensitiveActions).toBe(true);
+      expect(browserConfig.customConfig.maxActionsPerTask).toBe(100);
+    });
+  });
 });
 
 describe('setApprovalMode with folder trust', () => {
