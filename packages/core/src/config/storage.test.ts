@@ -160,6 +160,11 @@ describe('Storage – additional helpers', () => {
     const expected = path.join(tempDir, 'plans');
     expect(storage.getProjectTempPlansDir()).toBe(expected);
   });
+
+  it('getGlobalDependenciesDir returns ~/.gemini/dependencies', () => {
+    const expected = path.join(os.homedir(), GEMINI_DIR, 'dependencies');
+    expect(Storage.getGlobalDependenciesDir()).toBe(expected);
+  });
 });
 
 describe('Storage - System Paths', () => {
