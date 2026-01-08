@@ -18,13 +18,15 @@ describe('visualAgentDefinition', () => {
       expect(VisualAgentDefinition.kind).toBe('local');
     });
 
-    it('should use Computer Use model', () => {
-      expect(VisualAgentDefinition.modelConfig.model).toContain('computer-use');
+    it('should use flash model for visual tasks', () => {
+      expect(VisualAgentDefinition.modelConfig.model).toContain('flash');
     });
 
-    it('should have correct input config', () => {
-      const inputSchema = VisualAgentDefinition.inputConfig.inputSchema;
-      expect(inputSchema.properties?.['instruction']).toBeDefined();
+    it('should have correct input schema', () => {
+      const inputSchema = VisualAgentDefinition.inputConfig.inputSchema as {
+        properties: Record<string, unknown>;
+      };
+      expect(inputSchema.properties['instruction']).toBeDefined();
       // Note: screenshot is now injected via initialMessages, not as input
     });
 
@@ -58,7 +60,7 @@ describe('visualAgentDefinition', () => {
 
   describe('VISUAL_SYSTEM_PROMPT', () => {
     it('should include coordinate system explanation', () => {
-      expect(VISUAL_SYSTEM_PROMPT).toContain('COORDINATE');
+      expect(VISUAL_SYSTEM_PROMPT).toContain('pixel');
     });
 
     it('should list available actions', () => {

@@ -17,6 +17,7 @@
 
 import type { LocalAgentDefinition } from '../types.js';
 import { z } from 'zod';
+import { VISUAL_AGENT_MODEL } from './modelAvailability.js';
 
 /**
  * Output schema for visual agent results.
@@ -93,8 +94,8 @@ export const VisualAgentDefinition: LocalAgentDefinition<
   processOutput: (output) => JSON.stringify(output, null, 2),
 
   modelConfig: {
-    // Computer use model for visual/coordinate-based tasks
-    model: 'gemini-2.5-computer-use-preview-10-2025',
+    // Using computer use model for visual tasks
+    model: VISUAL_AGENT_MODEL,
     generateContentConfig: {
       temperature: 0,
       topP: 0.95,
