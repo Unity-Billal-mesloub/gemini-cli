@@ -17,8 +17,7 @@
 
 import type { FunctionDeclaration } from '@google/genai';
 import type { Tool as McpTool } from '@modelcontextprotocol/sdk/types.js';
-import type {
-  ToolConfirmationOutcome} from '../../tools/tools.js';
+import type { ToolConfirmationOutcome } from '../../tools/tools.js';
 import {
   DeclarativeTool,
   BaseToolInvocation,
@@ -238,8 +237,10 @@ function augmentToolDescription(toolName: string, description: string): string {
       ' Scroll the page in the specified direction. Use after take_snapshot to see more content.',
     take_snapshot:
       ' Returns the accessibility tree with uid values for each element. Call this first to see available elements.',
-    navigate:
+    navigate_page:
       ' Navigate to the specified URL. Call take_snapshot after to see the new page.',
+    new_page:
+      ' Opens a new page/tab with the specified URL. Call take_snapshot after to see the new page.',
     press_key:
       ' Press a keyboard key. Use for Enter, Tab, Escape, arrow keys, etc.',
   };
@@ -265,8 +266,15 @@ export function postProcessToolResult(
 ): string {
   // Strip embedded snapshots to prevent token bloat
   // MCP responses often include "## Latest page snapshot" with full AX tree
+  // BUT: Do NOT strip for take_snapshot - the model needs those uids!
   let processedResult = result;
-  if (result.includes('## Latest page snapshot')) {
+
+  // Only strip snapshots from NON-snapshot tools
+  // take_snapshot returns the accessibility tree which the model needs
+  if (
+    toolName !== 'take_snapshot' &&
+    result.includes('## Latest page snapshot')
+  ) {
     const parts = result.split('## Latest page snapshot');
     processedResult = parts[0].trim();
     // Log that we stripped a snapshot for debugging
