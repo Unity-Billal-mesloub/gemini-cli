@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { Box } from 'ink';
 import { ToolConfirmationQueue } from './ToolConfirmationQueue.js';
 import { ToolCallStatus, StreamingState } from '../types.js';
@@ -34,7 +34,6 @@ describe('ToolConfirmationQueue', () => {
           command: 'ls',
           rootCommand: 'ls',
           rootCommands: ['ls'],
-          onConfirm: vi.fn(),
         },
       },
       index: 1,
@@ -105,7 +104,6 @@ describe('ToolConfirmationQueue', () => {
           fileDiff: longDiff,
           originalContent: 'old',
           newContent: 'new',
-          onConfirm: vi.fn(),
         },
       },
       index: 1,
@@ -153,7 +151,6 @@ describe('ToolConfirmationQueue', () => {
           fileDiff: longDiff,
           originalContent: 'old',
           newContent: 'new',
-          onConfirm: vi.fn(),
         },
       },
       index: 1,
@@ -203,7 +200,6 @@ describe('ToolConfirmationQueue', () => {
           fileDiff: longDiff,
           originalContent: 'old',
           newContent: 'new',
-          onConfirm: vi.fn(),
         },
       },
       index: 1,
