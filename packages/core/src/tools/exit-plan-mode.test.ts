@@ -44,6 +44,8 @@ describe('ExitPlanModeTool', () => {
       getTargetDir: vi.fn().mockReturnValue(tempRootDir),
       setApprovalMode: vi.fn(),
       setApprovedPlanPath: vi.fn(),
+      removePolicyRulesBySource: vi.fn(),
+      validatePathAccess: vi.fn().mockReturnValue(null),
       storage: {
         getProjectTempPlansDir: vi.fn().mockReturnValue(mockPlansDir),
       } as unknown as Config['storage'],
@@ -207,6 +209,9 @@ Read and follow the plan strictly during implementation.`,
         returnDisplay: `Plan approved: ${expectedPath}`,
       });
       expect(mockConfig.setApprovedPlanPath).toHaveBeenCalledWith(expectedPath);
+      expect(mockConfig.removePolicyRulesBySource).toHaveBeenCalledWith(
+        'PlanMode',
+      );
     });
 
     it('should return approval message when plan is approved with AUTO_EDIT mode', async () => {
@@ -395,6 +400,9 @@ Ask the user for specific feedback on how to improve the plan.`,
   });
 
   it('should throw error during build if plan path is outside plans directory', () => {
+    mockConfig.validatePathAccess = vi
+      .fn()
+      .mockReturnValue('Path not in workspace');
     expect(() => tool.build({ plan_path: '../../../etc/passwd' })).toThrow(
       /Access denied/,
     );
@@ -411,7 +419,10 @@ Ask the user for specific feedback on how to improve the plan.`,
       expect(result).toBe('plan_path is required.');
     });
 
-    it('should reject path outside plans directory', () => {
+    it('should reject path outside workspace', () => {
+      mockConfig.validatePathAccess = vi
+        .fn()
+        .mockReturnValue('Path not in workspace');
       const result = tool.validateToolParams({
         plan_path: '../../../etc/passwd',
       });
@@ -427,23 +438,26 @@ Ask the user for specific feedback on how to improve the plan.`,
       expect(result).toContain('Plan file does not exist');
     });
 
-    it('should reject symbolic links pointing outside the plans directory', () => {
+    it('should reject symbolic links pointing outside the workspace', () => {
       const outsideFile = path.join(tempRootDir, 'outside.txt');
       fs.writeFileSync(outsideFile, 'secret');
       const maliciousPath = path.join(mockPlansDir, 'malicious.md');
       fs.symlinkSync(outsideFile, maliciousPath);
 
+      mockConfig.validatePathAccess = vi
+        .fn()
+        .mockReturnValue('Path not in workspace');
+
       const result = tool.validateToolParams({
         plan_path: 'plans/malicious.md',
       });
 
-      expect(result).toBe(
-        'Access denied: plan path must be within the designated plans directory.',
-      );
+      expect(result).toBe('Access denied: Path not in workspace');
     });
 
-    it('should accept valid path within plans directory', () => {
+    it('should accept valid path within workspace', () => {
       createPlanFile('valid.md', '# Content');
+      mockConfig.validatePathAccess = vi.fn().mockReturnValue(null);
       const result = tool.validateToolParams({
         plan_path: 'plans/valid.md',
       });

@@ -21,7 +21,6 @@ import { EXIT_PLAN_MODE_TOOL_NAME } from './tool-names.js';
 import { validatePlanPath, validatePlanContent } from '../utils/planUtils.js';
 import { ApprovalMode } from '../policy/types.js';
 import { checkExhaustive } from '../utils/checks.js';
-import { resolveToRealPath, isSubpath } from '../utils/paths.js';
 import { logPlanExecution } from '../telemetry/loggers.js';
 import { PlanExecutionEvent } from '../telemetry/types.js';
 
@@ -55,7 +54,6 @@ export class ExitPlanModeTool extends BaseDeclarativeTool<
     private config: Config,
     messageBus: MessageBus,
   ) {
-    const plansDir = config.storage.getProjectTempPlansDir();
     super(
       EXIT_PLAN_MODE_TOOL_NAME,
       'Exit Plan Mode',
@@ -67,7 +65,7 @@ export class ExitPlanModeTool extends BaseDeclarativeTool<
         properties: {
           plan_path: {
             type: 'string',
-            description: `The file path to the finalized plan (e.g., "${plansDir}/feature-x.md"). This path MUST be within the designated plans directory: ${plansDir}/`,
+            description: `The file path to the finalized plan. This path MUST be within the project directory.`,
           },
         },
       },
@@ -84,18 +82,14 @@ export class ExitPlanModeTool extends BaseDeclarativeTool<
 
     // Since validateToolParamValues is synchronous, we use a basic synchronous check
     // for path traversal safety. High-level async validation is deferred to shouldConfirmExecute.
-    const plansDir = resolveToRealPath(
-      this.config.storage.getProjectTempPlansDir(),
-    );
     const resolvedPath = path.resolve(
       this.config.getTargetDir(),
       params.plan_path,
     );
 
-    const realPath = resolveToRealPath(resolvedPath);
-
-    if (!isSubpath(plansDir, realPath)) {
-      return `Access denied: plan path must be within the designated plans directory.`;
+    const validationError = this.config.validatePathAccess(resolvedPath);
+    if (validationError) {
+      return `Access denied: ${validationError}`;
     }
 
     return null;
@@ -227,6 +221,9 @@ export class ExitPlanModeInvocation extends BaseToolInvocation<
       const newMode = payload.approvalMode ?? ApprovalMode.DEFAULT;
       this.config.setApprovalMode(newMode);
       this.config.setApprovedPlanPath(resolvedPlanPath);
+
+      // Clean up any dynamic plan mode rules
+      this.config.removePolicyRulesBySource('PlanMode');
 
       logPlanExecution(this.config, new PlanExecutionEvent(newMode));
 
