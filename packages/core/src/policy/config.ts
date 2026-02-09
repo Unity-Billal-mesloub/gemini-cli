@@ -39,15 +39,20 @@ export const DEFAULT_CORE_POLICIES_DIR = path.join(__dirname, 'policies');
 // Policy tier constants for priority calculation
 export const DEFAULT_POLICY_TIER = 1;
 export const USER_POLICY_TIER = 2;
-export const ADMIN_POLICY_TIER = 3;
+export const PROJECT_POLICY_TIER = 3;
+export const ADMIN_POLICY_TIER = 4;
 
 /**
  * Gets the list of directories to search for policy files, in order of increasing priority
- * (Default -> User -> Admin).
+ * (Default -> User -> Project -> Admin).
  *
  * @param defaultPoliciesDir Optional path to a directory containing default policies.
+ * @param projectPoliciesDir Optional path to a directory containing project policies.
  */
-export function getPolicyDirectories(defaultPoliciesDir?: string): string[] {
+export function getPolicyDirectories(
+  defaultPoliciesDir?: string,
+  projectPoliciesDir?: string,
+): string[] {
   const dirs = [];
 
   if (defaultPoliciesDir) {
@@ -57,21 +62,27 @@ export function getPolicyDirectories(defaultPoliciesDir?: string): string[] {
   }
 
   dirs.push(Storage.getUserPoliciesDir());
+
+  if (projectPoliciesDir) {
+    dirs.push(projectPoliciesDir);
+  }
+
   dirs.push(Storage.getSystemPoliciesDir());
 
   // Reverse so highest priority (Admin) is first for loading order if needed,
   // though loadPoliciesFromToml might want them in a specific order.
-  // CLI implementation reversed them: [DEFAULT, USER, ADMIN].reverse() -> [ADMIN, USER, DEFAULT]
+  // CLI implementation reversed them: [DEFAULT, USER, PROJECT, ADMIN].reverse() -> [ADMIN, PROJECT, USER, DEFAULT]
   return dirs.reverse();
 }
 
 /**
- * Determines the policy tier (1=default, 2=user, 3=admin) for a given directory.
+ * Determines the policy tier (1=default, 2=user, 3=project, 4=admin) for a given directory.
  * This is used by the TOML loader to assign priority bands.
  */
 export function getPolicyTier(
   dir: string,
   defaultPoliciesDir?: string,
+  projectPoliciesDir?: string,
 ): number {
   const USER_POLICIES_DIR = Storage.getUserPoliciesDir();
   const ADMIN_POLICIES_DIR = Storage.getSystemPoliciesDir();
@@ -91,6 +102,12 @@ export function getPolicyTier(
   }
   if (normalizedDir === normalizedUser) {
     return USER_POLICY_TIER;
+  }
+  if (
+    projectPoliciesDir &&
+    normalizedDir === path.resolve(projectPoliciesDir)
+  ) {
+    return PROJECT_POLICY_TIER;
   }
   if (normalizedDir === normalizedAdmin) {
     return ADMIN_POLICY_TIER;
@@ -146,8 +163,12 @@ export async function createPolicyEngineConfig(
   settings: PolicySettings,
   approvalMode: ApprovalMode,
   defaultPoliciesDir?: string,
+  projectPoliciesDir?: string,
 ): Promise<PolicyEngineConfig> {
-  const policyDirs = getPolicyDirectories(defaultPoliciesDir);
+  const policyDirs = getPolicyDirectories(
+    defaultPoliciesDir,
+    projectPoliciesDir,
+  );
   const securePolicyDirs = await filterSecurePolicyDirectories(policyDirs);
 
   // Load policies from TOML files
@@ -156,7 +177,7 @@ export async function createPolicyEngineConfig(
     checkers: tomlCheckers,
     errors,
   } = await loadPoliciesFromToml(securePolicyDirs, (dir) =>
-    getPolicyTier(dir, defaultPoliciesDir),
+    getPolicyTier(dir, defaultPoliciesDir, projectPoliciesDir),
   );
 
   // Emit any errors encountered during TOML loading to the UI
@@ -178,9 +199,10 @@ export async function createPolicyEngineConfig(
   // Priority bands (tiers):
   // - Default policies (TOML): 1 + priority/1000 (e.g., priority 100 → 1.100)
   // - User policies (TOML): 2 + priority/1000 (e.g., priority 100 → 2.100)
-  // - Admin policies (TOML): 3 + priority/1000 (e.g., priority 100 → 3.100)
+  // - Project policies (TOML): 3 + priority/1000 (e.g., priority 100 → 3.100)
+  // - Admin policies (TOML): 4 + priority/1000 (e.g., priority 100 → 4.100)
   //
-  // This ensures Admin > User > Default hierarchy is always preserved,
+  // This ensures Admin > Project > User > Default hierarchy is always preserved,
   // while allowing user-specified priorities to work within each tier.
   //
   // Settings-based and dynamic rules (all in user tier 2.x):

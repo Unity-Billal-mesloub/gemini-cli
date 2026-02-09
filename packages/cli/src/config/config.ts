@@ -40,6 +40,7 @@ import {
   Config,
   applyAdminAllowlist,
   getAdminBlockedMcpServersMessage,
+  Storage,
   type HookDefinition,
   type HookEventName,
   type OutputFormat,
@@ -668,9 +669,15 @@ export async function loadCliConfig(
     },
   };
 
+  let projectPoliciesDir: string | undefined;
+  if (trustedFolder) {
+    projectPoliciesDir = new Storage(cwd).getProjectPoliciesDir();
+  }
+
   const policyEngineConfig = await createPolicyEngineConfig(
     effectiveSettings,
     approvalMode,
+    projectPoliciesDir,
   );
   policyEngineConfig.nonInteractive = !interactive;
 
