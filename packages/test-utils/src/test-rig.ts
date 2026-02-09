@@ -434,6 +434,17 @@ export class TestRig {
     return filePath;
   }
 
+  createScript(fileName: string, content: string) {
+    if (!this.testDir) {
+      throw new Error(
+        'TestRig.setup must be called before creating files or scripts',
+      );
+    }
+    const scriptPath = join(this.testDir, fileName);
+    writeFileSync(scriptPath, content);
+    return scriptPath;
+  }
+
   mkdir(dir: string) {
     mkdirSync(join(this.testDir!, dir), { recursive: true });
   }
@@ -567,7 +578,8 @@ export class TestRig {
       }
     });
 
-    const timeout = options.timeout ?? 300000;
+    const isWinCI = os.platform() === 'win32' && process.env['CI'] === 'true';
+    const timeout = options.timeout ?? (isWinCI ? 600000 : 300000); // 10 mins on Win CI, 5 mins otherwise
     const promise = new Promise<string>((resolve, reject) => {
       const timer = setTimeout(() => {
         child.kill('SIGKILL');
@@ -738,7 +750,8 @@ export class TestRig {
       }
     });
 
-    const timeout = options.timeout ?? 300000;
+    const isWinCI = os.platform() === 'win32' && process.env['CI'] === 'true';
+    const timeout = options.timeout ?? (isWinCI ? 600000 : 300000); // 10 mins on Win CI, 5 mins otherwise
     const promise = new Promise<string>((resolve, reject) => {
       const timer = setTimeout(() => {
         child.kill('SIGKILL');
