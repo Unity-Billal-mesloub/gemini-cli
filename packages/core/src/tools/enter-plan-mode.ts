@@ -15,10 +15,20 @@ import {
 import type { MessageBus } from '../confirmation-bus/message-bus.js';
 import type { Config } from '../config/config.js';
 import { ENTER_PLAN_MODE_TOOL_NAME } from './tool-names.js';
-import { ApprovalMode } from '../policy/types.js';
+import { ApprovalMode, PolicyDecision } from '../policy/types.js';
+import path from 'node:path';
 
 export interface EnterPlanModeParams {
   reason?: string;
+  /**
+   * Optional file path to allow write access to while in Plan Mode.
+   */
+  path?: string;
+  /**
+   * Optional list of tools to allow for the specified path.
+   * Defaults to ['write_file', 'replace'].
+   */
+  allowed_tools?: string[];
 }
 
 export class EnterPlanModeTool extends BaseDeclarativeTool<
@@ -41,6 +51,17 @@ export class EnterPlanModeTool extends BaseDeclarativeTool<
             type: 'string',
             description:
               'Short reason explaining why you are entering plan mode.',
+          },
+          path: {
+            type: 'string',
+            description:
+              'Optional file path to allow write access to while in Plan Mode. This is useful for planning directly in a file (e.g., a Conductor track plan).',
+          },
+          allowed_tools: {
+            type: 'array',
+            items: { type: 'string' },
+            description:
+              "Optional list of tools to allow for the specified path. Defaults to ['write_file', 'replace'].",
           },
         },
       },
@@ -121,13 +142,54 @@ export class EnterPlanModeInvocation extends BaseToolInvocation<
       };
     }
 
+    if (this.params.path) {
+      const absolutePath = path.resolve(
+        this.config.getTargetDir(),
+        this.params.path,
+      );
+
+      const validationError = this.config.validatePathAccess(absolutePath);
+      if (validationError) {
+        return {
+          llmContent: `Error: ${validationError}`,
+          returnDisplay: 'Error: Invalid path',
+        };
+      }
+
+      // Escape the path for use in a regex. We double-escape backslashes for JSON matching.
+      const escapedPath = absolutePath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+      const allowedTools = this.params.allowed_tools || [
+        'write_file',
+        'replace',
+      ];
+
+      for (const toolName of allowedTools) {
+        this.config.addPolicyRule({
+          toolName,
+          argsPattern: new RegExp(`"file_path":"${escapedPath}"`),
+          decision: PolicyDecision.ALLOW,
+          priority: 80, // Higher than plan.toml defaults (70)
+          modes: [ApprovalMode.PLAN],
+          source: 'PlanMode',
+        });
+      }
+    }
+
     this.config.setApprovalMode(ApprovalMode.PLAN);
 
+    let displayMessage = this.params.reason
+      ? `Switching to Plan mode: ${this.params.reason}`
+      : 'Switching to Plan mode';
+    if (this.params.path) {
+      displayMessage += ` (Allowed path: ${this.params.path})`;
+    }
+
     return {
-      llmContent: 'Switching to Plan mode.',
-      returnDisplay: this.params.reason
-        ? `Switching to Plan mode: ${this.params.reason}`
-        : 'Switching to Plan mode',
+      llmContent: this.params.path
+        ? `Switching to Plan mode. Write access enabled for: ${this.params.path}`
+        : 'Switching to Plan mode.',
+      returnDisplay: displayMessage,
     };
   }
 }

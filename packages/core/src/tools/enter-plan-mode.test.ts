@@ -10,22 +10,27 @@ import { createMockMessageBus } from '../test-utils/mock-message-bus.js';
 import type { Config } from '../config/config.js';
 import type { MessageBus } from '../confirmation-bus/message-bus.js';
 import { ToolConfirmationOutcome } from './tools.js';
-import { ApprovalMode } from '../policy/types.js';
+import { ApprovalMode, PolicyDecision } from '../policy/types.js';
 
 describe('EnterPlanModeTool', () => {
   let tool: EnterPlanModeTool;
   let mockMessageBus: ReturnType<typeof createMockMessageBus>;
-  let mockConfig: Partial<Config>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let mockConfig: any;
 
   beforeEach(() => {
     mockMessageBus = createMockMessageBus();
-    vi.mocked(mockMessageBus.publish).mockResolvedValue(undefined);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (mockMessageBus as any).publish.mockResolvedValue(undefined);
 
     mockConfig = {
       setApprovalMode: vi.fn(),
+      addPolicyRule: vi.fn(),
+      validatePathAccess: vi.fn().mockReturnValue(null),
+      getTargetDir: vi.fn().mockReturnValue('/app'),
       storage: {
         getProjectTempPlansDir: vi.fn().mockReturnValue('/mock/plans/dir'),
-      } as unknown as Config['storage'],
+      },
     };
     tool = new EnterPlanModeTool(
       mockConfig as Config,
@@ -39,7 +44,13 @@ describe('EnterPlanModeTool', () => {
 
   describe('shouldConfirmExecute', () => {
     it('should return info confirmation details when policy says ASK_USER', async () => {
-      const invocation = tool.build({});
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const invocation = (tool as any).createInvocation(
+        {},
+        mockMessageBus as unknown as MessageBus,
+        'enter_plan_mode',
+        'Enter Plan Mode',
+      );
 
       // Mock getMessageBusDecision to return ASK_USER
       vi.spyOn(
@@ -66,7 +77,13 @@ describe('EnterPlanModeTool', () => {
     });
 
     it('should return false when policy decision is ALLOW', async () => {
-      const invocation = tool.build({});
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const invocation = (tool as any).createInvocation(
+        {},
+        mockMessageBus as unknown as MessageBus,
+        'enter_plan_mode',
+        'Enter Plan Mode',
+      );
 
       // Mock getMessageBusDecision to return ALLOW
       vi.spyOn(
@@ -84,7 +101,13 @@ describe('EnterPlanModeTool', () => {
     });
 
     it('should throw error when policy decision is DENY', async () => {
-      const invocation = tool.build({});
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const invocation = (tool as any).createInvocation(
+        {},
+        mockMessageBus as unknown as MessageBus,
+        'enter_plan_mode',
+        'Enter Plan Mode',
+      );
 
       // Mock getMessageBusDecision to return DENY
       vi.spyOn(
@@ -102,20 +125,13 @@ describe('EnterPlanModeTool', () => {
 
   describe('execute', () => {
     it('should set approval mode to PLAN and return message', async () => {
-      const invocation = tool.build({});
-
-      const result = await invocation.execute(new AbortController().signal);
-
-      expect(mockConfig.setApprovalMode).toHaveBeenCalledWith(
-        ApprovalMode.PLAN,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const invocation = (tool as any).createInvocation(
+        {},
+        mockMessageBus as unknown as MessageBus,
+        'enter_plan_mode',
+        'Enter Plan Mode',
       );
-      expect(result.llmContent).toContain('Switching to Plan mode');
-      expect(result.returnDisplay).toBe('Switching to Plan mode');
-    });
-
-    it('should include optional reason in output display but not in llmContent', async () => {
-      const reason = 'Design new database schema';
-      const invocation = tool.build({ reason });
 
       const result = await invocation.execute(new AbortController().signal);
 
@@ -123,12 +139,76 @@ describe('EnterPlanModeTool', () => {
         ApprovalMode.PLAN,
       );
       expect(result.llmContent).toBe('Switching to Plan mode.');
-      expect(result.llmContent).not.toContain(reason);
+      expect(result.returnDisplay).toBe('Switching to Plan mode');
+    });
+
+    it('should include optional reason in output display', async () => {
+      const reason = 'Design new database schema';
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const invocation = (tool as any).createInvocation(
+        { reason },
+        mockMessageBus as unknown as MessageBus,
+        'enter_plan_mode',
+        'Enter Plan Mode',
+      );
+
+      const result = await invocation.execute(new AbortController().signal);
+
+      expect(mockConfig.setApprovalMode).toHaveBeenCalledWith(
+        ApprovalMode.PLAN,
+      );
+      expect(result.llmContent).toBe('Switching to Plan mode.');
       expect(result.returnDisplay).toContain(reason);
     });
 
+    it('should add policy rules if path is provided', async () => {
+      const path = 'conductor/plan.md';
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const invocation = (tool as any).createInvocation(
+        { path },
+        mockMessageBus as unknown as MessageBus,
+        'enter_plan_mode',
+        'Enter Plan Mode',
+      );
+
+      const result = await invocation.execute(new AbortController().signal);
+
+      expect(mockConfig.addPolicyRule).toHaveBeenCalledTimes(2); // write_file + replace
+      expect(mockConfig.addPolicyRule).toHaveBeenCalledWith(
+        expect.objectContaining({
+          toolName: 'write_file',
+          argsPattern: expect.any(RegExp),
+          decision: PolicyDecision.ALLOW,
+          source: 'PlanMode',
+        }),
+      );
+      expect(result.llmContent).toContain(path);
+    });
+
+    it('should fail if path validation fails', async () => {
+      mockConfig.validatePathAccess.mockReturnValue('Access denied');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const invocation = (tool as any).createInvocation(
+        { path: '/forbidden/path' },
+        mockMessageBus as unknown as MessageBus,
+        'enter_plan_mode',
+        'Enter Plan Mode',
+      );
+
+      const result = await invocation.execute(new AbortController().signal);
+
+      expect(mockConfig.setApprovalMode).not.toHaveBeenCalled();
+      expect(result.returnDisplay).toBe('Error: Invalid path');
+    });
+
     it('should not enter plan mode if cancelled', async () => {
-      const invocation = tool.build({});
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const invocation = (tool as any).createInvocation(
+        {},
+        mockMessageBus as unknown as MessageBus,
+        'enter_plan_mode',
+        'Enter Plan Mode',
+      );
 
       // Simulate getting confirmation details
       vi.spyOn(
