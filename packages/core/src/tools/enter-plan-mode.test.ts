@@ -185,6 +185,40 @@ describe('EnterPlanModeTool', () => {
       expect(result.llmContent).toContain(path);
     });
 
+    it('should add policy rules supporting directory access', async () => {
+      const dirPath = 'conductor/tracks/feature-1';
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const invocation = (tool as any).createInvocation(
+        { path: dirPath },
+        mockMessageBus as unknown as MessageBus,
+        'enter_plan_mode',
+        'Enter Plan Mode',
+      );
+
+      await invocation.execute(new AbortController().signal);
+
+      // Verify the added rule has a regex that matches a file inside the directory
+      expect(mockConfig.addPolicyRule).toHaveBeenCalledWith(
+        expect.objectContaining({
+          toolName: 'write_file',
+          argsPattern: expect.any(RegExp),
+        }),
+      );
+
+      const rule = mockConfig.addPolicyRule.mock.calls.find(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (call: any[]) => call[0].toolName === 'write_file',
+      )[0];
+
+      const regex = rule.argsPattern;
+      const childFile = `/app/${dirPath}/plan.md`;
+      const exactMatch = `/app/${dirPath}`;
+
+      // Simulate the JSON matching that PolicyEngine does
+      expect(`"file_path":"${childFile}"`).toMatch(regex);
+      expect(`"file_path":"${exactMatch}"`).toMatch(regex);
+    });
+
     it('should fail if path validation fails', async () => {
       mockConfig.validatePathAccess.mockReturnValue('Access denied');
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

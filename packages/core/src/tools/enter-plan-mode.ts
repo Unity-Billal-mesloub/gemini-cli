@@ -167,7 +167,8 @@ export class EnterPlanModeInvocation extends BaseToolInvocation<
       for (const toolName of allowedTools) {
         this.config.addPolicyRule({
           toolName,
-          argsPattern: new RegExp(`"file_path":"${escapedPath}"`),
+          // Allow the exact path OR any subpath (directory support)
+          argsPattern: new RegExp(`"file_path":"${escapedPath}(?:/.*)?"`),
           decision: PolicyDecision.ALLOW,
           priority: 80, // Higher than plan.toml defaults (70)
           modes: [ApprovalMode.PLAN],
