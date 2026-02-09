@@ -10,7 +10,11 @@ import type { ConfigParameters, SandboxConfig } from './config.js';
 import { Config, DEFAULT_FILE_FILTERING_OPTIONS } from './config.js';
 import { ExperimentFlags } from '../code_assist/experiments/flagNames.js';
 import { debugLogger } from '../utils/debugLogger.js';
-import { ApprovalMode } from '../policy/types.js';
+import {
+  ApprovalMode,
+  PolicyDecision,
+  type PolicyRule,
+} from '../policy/types.js';
 import type { HookDefinition } from '../hooks/types.js';
 import { HookType, HookEventName } from '../hooks/types.js';
 import { FileDiscoveryService } from '../services/fileDiscoveryService.js';
@@ -40,6 +44,7 @@ import { ACTIVATE_SKILL_TOOL_NAME } from '../tools/tool-names.js';
 import type { SkillDefinition } from '../skills/skillLoader.js';
 import { DEFAULT_MODEL_CONFIGS } from './defaultModelConfigs.js';
 import { DEFAULT_GEMINI_MODEL, PREVIEW_GEMINI_MODEL } from './models.js';
+import type { PolicyEngine } from '../policy/policy-engine.js';
 
 vi.mock('fs', async (importOriginal) => {
   const actual = await importOriginal<typeof import('fs')>();
@@ -2395,5 +2400,63 @@ describe('syncPlanModeTools', () => {
     config.syncPlanModeTools();
 
     expect(setToolsSpy).toHaveBeenCalled();
+  });
+
+  describe('Dynamic Policy Rules', () => {
+    const baseParams: ConfigParameters = {
+      cwd: '/tmp',
+      targetDir: '/tmp',
+      debugMode: false,
+      sessionId: 'test-session',
+      model: 'gemini-pro',
+      usageStatisticsEnabled: false,
+      embeddingModel: 'gemini-embedding',
+      sandbox: {
+        command: 'docker',
+        image: 'gemini-cli-sandbox',
+      },
+    };
+
+    it('should add a policy rule via addPolicyRule', () => {
+      const config = new Config(baseParams);
+      const rule: PolicyRule = {
+        decision: PolicyDecision.ALLOW,
+        source: 'DynamicTest',
+        toolName: 'test_tool',
+      };
+
+      config.addPolicyRule(rule);
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const policyEngine = (config as any).policyEngine as PolicyEngine;
+      const rules = policyEngine.getRules();
+      expect(rules).toContain(rule);
+    });
+
+    it('should remove policy rules by source via removePolicyRulesBySource', () => {
+      const config = new Config(baseParams);
+      const rule1: PolicyRule = {
+        decision: PolicyDecision.ALLOW,
+        source: 'SourceA',
+        toolName: 'tool1',
+      };
+      const rule2: PolicyRule = {
+        decision: PolicyDecision.ALLOW,
+        source: 'SourceB',
+        toolName: 'tool2',
+      };
+
+      config.addPolicyRule(rule1);
+      config.addPolicyRule(rule2);
+
+      config.removePolicyRulesBySource('SourceA');
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const policyEngine = (config as any).policyEngine as PolicyEngine;
+      const rules = policyEngine.getRules();
+
+      expect(rules).not.toContain(rule1);
+      expect(rules).toContain(rule2);
+    });
   });
 });

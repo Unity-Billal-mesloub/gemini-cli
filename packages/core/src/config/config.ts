@@ -96,7 +96,11 @@ import { FileExclusions } from '../utils/ignorePatterns.js';
 import type { EventEmitter } from 'node:events';
 import { MessageBus } from '../confirmation-bus/message-bus.js';
 import { PolicyEngine } from '../policy/policy-engine.js';
-import { ApprovalMode, type PolicyEngineConfig } from '../policy/types.js';
+import {
+  ApprovalMode,
+  type PolicyEngineConfig,
+  type PolicyRule,
+} from '../policy/types.js';
 import { HookSystem } from '../hooks/index.js';
 import type { UserTierId } from '../code_assist/types.js';
 import type { RetrieveUserQuotaResponse } from '../code_assist/types.js';
@@ -1488,6 +1492,20 @@ export class Config {
 
   setGeminiMdFilePaths(paths: string[]): void {
     this.geminiMdFilePaths = paths;
+  }
+
+  /**
+   * Add a dynamic policy rule to the engine.
+   */
+  addPolicyRule(rule: PolicyRule): void {
+    this.policyEngine.addRule(rule);
+  }
+
+  /**
+   * Remove dynamic policy rules by their source.
+   */
+  removePolicyRulesBySource(source: string): void {
+    this.policyEngine.removeRulesBySource(source);
   }
 
   getApprovalMode(): ApprovalMode {

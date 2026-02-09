@@ -471,6 +471,13 @@ export class PolicyEngine {
   }
 
   /**
+   * Remove all rules associated with a specific source.
+   */
+  removeRulesBySource(source: string): void {
+    this.rules = this.rules.filter((rule) => rule.source !== source);
+  }
+
+  /**
    * Get all current rules.
    */
   getRules(): readonly PolicyRule[] {
