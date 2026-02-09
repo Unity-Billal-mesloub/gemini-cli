@@ -39,6 +39,15 @@ describe('planUtils', () => {
       expect(result).toBeNull();
     });
 
+    it('should return null for a valid path outside plans directory but within project root', async () => {
+      const planPath = 'root-plan.md';
+      const fullPath = path.join(tempRootDir, planPath);
+      fs.writeFileSync(fullPath, '# My Plan');
+
+      const result = await validatePlanPath(planPath, plansDir, tempRootDir);
+      expect(result).toBeNull();
+    });
+
     it('should return error for path traversal', async () => {
       const planPath = path.join('..', 'secret.txt');
       const result = await validatePlanPath(planPath, plansDir, tempRootDir);
@@ -54,10 +63,13 @@ describe('planUtils', () => {
     it('should detect path traversal via symbolic links', async () => {
       const maliciousPath = path.join('plans', 'malicious.md');
       const fullMaliciousPath = path.join(tempRootDir, maliciousPath);
-      const outsideFile = path.join(tempRootDir, 'outside.txt');
+
+      // Create a file totally outside the project root
+      const outsideDir = fs.mkdtempSync(path.join(os.tmpdir(), 'outside-'));
+      const outsideFile = path.join(outsideDir, 'secret.txt');
       fs.writeFileSync(outsideFile, 'secret content');
 
-      // Create a symbolic link pointing outside the plans directory
+      // Create a symbolic link pointing outside the project root
       fs.symlinkSync(outsideFile, fullMaliciousPath);
 
       const result = await validatePlanPath(
@@ -65,6 +77,10 @@ describe('planUtils', () => {
         plansDir,
         tempRootDir,
       );
+
+      // Clean up outside dir
+      fs.rmSync(outsideDir, { recursive: true, force: true });
+
       expect(result).toContain('Access denied');
     });
   });
