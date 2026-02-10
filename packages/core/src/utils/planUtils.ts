@@ -5,6 +5,7 @@
  */
 
 import path from 'node:path';
+import fs from 'node:fs/promises';
 import { isEmpty, fileExists } from './fileUtils.js';
 import { isSubpath, resolveToRealPath } from './paths.js';
 
@@ -50,14 +51,30 @@ export async function validatePlanPath(
 }
 
 /**
- * Validates that a plan file has non-empty content.
- * @param planPath The path to the plan file.
- * @returns An error message if the file is empty or unreadable, or null if successful.
+ * Validates that a plan file or directory has non-empty content.
+ * @param planPath The path to the plan file or directory.
+ * @returns An error message if the file/directory is empty or unreadable, or null if successful.
  */
 export async function validatePlanContent(
   planPath: string,
 ): Promise<string | null> {
   try {
+    let isDirectory = false;
+    try {
+      const stats = await fs.stat(planPath);
+      isDirectory = stats.isDirectory();
+    } catch {
+      // Ignore stat errors; let isEmpty handle non-existent/unreadable files
+    }
+
+    if (isDirectory) {
+      const files = await fs.readdir(planPath);
+      if (files.length === 0) {
+        return 'Plan directory is empty. You must create plan files before requesting approval.';
+      }
+      return null;
+    }
+
     if (await isEmpty(planPath)) {
       return PlanErrorMessages.FILE_EMPTY;
     }

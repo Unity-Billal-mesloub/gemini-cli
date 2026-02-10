@@ -87,13 +87,11 @@ describe('ExitPlanModeTool', () => {
       );
 
       expect(result).not.toBe(false);
-      if (result === false) return;
+      if (result === false || result.type !== 'exit_plan_mode') return;
 
       expect(result.type).toBe('exit_plan_mode');
       expect(result.title).toBe('Plan Approval');
-      if (result.type === 'exit_plan_mode') {
-        expect(result.planPath).toBe(path.join(mockPlansDir, 'test-plan.md'));
-      }
+      expect(result.planPath).toBe(path.join(mockPlansDir, 'test-plan.md'));
       expect(typeof result.onConfirm).toBe('function');
     });
 
@@ -179,6 +177,39 @@ describe('ExitPlanModeTool', () => {
       const result = await invocation.execute(new AbortController().signal);
 
       expect(result.llmContent).toContain('Plan file does not exist');
+    });
+
+    it('should support directory path as plan', async () => {
+      const planDirRelative = 'plans/my-plan-dir';
+      const planDirPath = path.join(tempRootDir, planDirRelative);
+      fs.mkdirSync(planDirPath, { recursive: true });
+      fs.writeFileSync(path.join(planDirPath, 'plan.md'), '# Plan Content');
+
+      const invocation = tool.build({ plan_path: planDirRelative });
+
+      const result = await invocation.shouldConfirmExecute(
+        new AbortController().signal,
+      );
+
+      expect(result).not.toBe(false);
+      if (result === false || result.type !== 'exit_plan_mode') return;
+
+      expect(result.type).toBe('exit_plan_mode');
+      expect(result.planPath).toBe(planDirPath);
+    });
+
+    it('should reject empty directory path as plan', async () => {
+      const planDirRelative = 'plans/empty-dir';
+      const planDirPath = path.join(tempRootDir, planDirRelative);
+      fs.mkdirSync(planDirPath, { recursive: true });
+
+      const invocation = tool.build({ plan_path: planDirRelative });
+
+      const result = await invocation.shouldConfirmExecute(
+        new AbortController().signal,
+      );
+
+      expect(result).toBe(false); // Validation fails
     });
   });
 

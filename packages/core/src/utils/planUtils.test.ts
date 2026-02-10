@@ -107,5 +107,22 @@ describe('planUtils', () => {
       // we expect the "Plan file is empty" message.
       expect(result).toContain('Plan file is empty');
     });
+
+    it('should return null for non-empty directory', async () => {
+      const planDirPath = path.join(plansDir, 'my-plan-dir');
+      fs.mkdirSync(planDirPath, { recursive: true });
+      fs.writeFileSync(path.join(planDirPath, 'plan.md'), '# Content');
+
+      const result = await validatePlanContent(planDirPath);
+      expect(result).toBeNull();
+    });
+
+    it('should return error for empty directory', async () => {
+      const planDirPath = path.join(plansDir, 'empty-dir');
+      fs.mkdirSync(planDirPath, { recursive: true });
+
+      const result = await validatePlanContent(planDirPath);
+      expect(result).toContain('Plan directory is empty');
+    });
   });
 });
