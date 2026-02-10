@@ -55,6 +55,8 @@ interface ReplacementResult {
   occurrences: number;
   finalOldString: string;
   finalNewString: string;
+  /** True when flexible matching only succeeded after trimming trailing empty lines from old_string. */
+  trimmedTrailingNewline?: boolean;
 }
 
 export function applyReplacement(
@@ -153,6 +155,23 @@ async function calculateFlexibleReplacement(
   const searchLinesStripped = normalizedSearch
     .split('\n')
     .map((line: string) => line.trim());
+
+  // Strip trailing empty entries caused by a trailing newline in old_string.
+  // sourceLines never has trailing empty entries (the regex + slice handles that),
+  // so trailing empty search lines can never match and would always cause failure.
+  let trimmedTrailingNewline = false;
+  while (
+    searchLinesStripped.length > 0 &&
+    searchLinesStripped[searchLinesStripped.length - 1] === ''
+  ) {
+    searchLinesStripped.pop();
+    trimmedTrailingNewline = true;
+  }
+
+  if (searchLinesStripped.length === 0) {
+    return null;
+  }
+
   const replaceLines = normalizedReplace.split('\n');
 
   let flexibleOccurrences = 0;
@@ -172,12 +191,20 @@ async function calculateFlexibleReplacement(
       const newBlockWithIndent = replaceLines.map(
         (line: string) => `${indentation}${line}`,
       );
-      sourceLines.splice(
-        i,
-        searchLinesStripped.length,
-        newBlockWithIndent.join('\n'),
+      // Preserve the trailing newline from the last matched source line
+      // so the following line isn't concatenated directly onto the replacement.
+      const lastMatchedLine = window[window.length - 1];
+      const trailingNewline = lastMatchedLine.endsWith('\n') ? '\n' : '';
+      // Insert replacement as individual line entries to match the sourceLines
+      // format. Each entry includes its trailing \n, except possibly the last.
+      const newLineEntries = newBlockWithIndent.map(
+        (line: string, idx: number) =>
+          idx < newBlockWithIndent.length - 1
+            ? line + '\n'
+            : line + trailingNewline,
       );
-      i += replaceLines.length;
+      sourceLines.splice(i, searchLinesStripped.length, ...newLineEntries);
+      i += newLineEntries.length;
     } else {
       i++;
     }
@@ -191,6 +218,7 @@ async function calculateFlexibleReplacement(
       occurrences: flexibleOccurrences,
       finalOldString: normalizedSearch,
       finalNewString: normalizedReplace,
+      trimmedTrailingNewline,
     };
   }
 
@@ -246,10 +274,11 @@ async function calculateRegexReplacement(
 
   // Use replace with the regex to substitute the matched content.
   // Since the regex doesn't have the 'g' flag, it will only replace the first occurrence.
-  const modifiedCode = currentContent.replace(
-    flexibleRegex,
-    newBlockWithIndent,
-  );
+  // Escape $ in the replacement to prevent regex substitution interpretation.
+  const safeReplacement = newBlockWithIndent.includes('$')
+    ? newBlockWithIndent.replaceAll('$', '$$$$')
+    : newBlockWithIndent;
+  const modifiedCode = currentContent.replace(flexibleRegex, safeReplacement);
 
   return {
     newContent: restoreTrailingNewline(currentContent, modifiedCode),
@@ -286,7 +315,10 @@ export async function calculateReplacement(
 
   const flexibleResult = await calculateFlexibleReplacement(context);
   if (flexibleResult) {
-    const event = new EditStrategyEvent('flexible');
+    const strategy = flexibleResult.trimmedTrailingNewline
+      ? 'flexible_trimmed'
+      : 'flexible';
+    const event = new EditStrategyEvent(strategy);
     logEditStrategy(config, event);
     return flexibleResult;
   }

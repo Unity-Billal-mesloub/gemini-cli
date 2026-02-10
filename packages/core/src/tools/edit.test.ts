@@ -409,6 +409,83 @@ describe('EditTool', () => {
       const expectedContent = '  // some comment\n\n  function newFunc() {}';
       expect(result.newContent).toBe(expectedContent);
     });
+
+    it('should match flexibly when old_string has a trailing newline (Bug 1 regression)', async () => {
+      // When old_string has a trailing \n, split('\n') creates an extra empty entry.
+      // sourceLines never has trailing empty entries, so this previously always failed.
+      const content = '    function hello() {\n        return 1;\n    }\n';
+      const result = await calculateReplacement(mockConfig, {
+        params: {
+          file_path: 'test.js',
+          instruction: 'test',
+          old_string: 'function hello() {\n    return 1;\n}\n', // trailing newline + different indentation
+          new_string: 'function hello() {\n    return 2;\n}',
+        },
+        currentContent: content,
+        abortSignal,
+      });
+
+      expect(result.occurrences).toBe(1);
+      expect(result.newContent).toBe(
+        '    function hello() {\n        return 2;\n    }\n',
+      );
+    });
+
+    it('should preserve newlines between replaced block and following content (Bug 2 regression)', async () => {
+      // Previously, flexible replacement dropped the trailing \n from matched lines,
+      // causing the next line to be concatenated directly.
+      const content = '  hello\n    world\n  other stuff\n';
+      const result = await calculateReplacement(mockConfig, {
+        params: {
+          file_path: 'test.txt',
+          instruction: 'test',
+          old_string: 'hello\nworld',
+          new_string: 'goodbye\nmoon',
+        },
+        currentContent: content,
+        abortSignal,
+      });
+
+      expect(result.occurrences).toBe(1);
+      expect(result.newContent).toBe('  goodbye\n  moon\n  other stuff\n');
+    });
+
+    it('should handle $ in new_string during regex replacement (Bug 3 regression)', async () => {
+      // The regex replacement strategy uses String.replace() which interprets
+      // $ sequences as replacement patterns. They must be escaped.
+      const content = '  function  myFunc( a ) {\n    return a;\n  }';
+      const result = await calculateReplacement(mockConfig, {
+        params: {
+          file_path: 'test.js',
+          instruction: 'test',
+          old_string: 'function myFunc(a) {', // Different intra-line whitespace triggers regex
+          new_string: 'function myFunc($1) {',
+        },
+        currentContent: content,
+        abortSignal,
+      });
+
+      expect(result.occurrences).toBe(1);
+      expect(result.newContent).toContain('function myFunc($1) {');
+    });
+
+    it('should handle multiple occurrences with trailing newline in old_string', async () => {
+      const content = '  foo\n  bar\n  foo\n  bar\n';
+      const result = await calculateReplacement(mockConfig, {
+        params: {
+          file_path: 'test.txt',
+          instruction: 'test',
+          old_string: 'foo\nbar\n', // trailing newline
+          new_string: 'baz\nqux',
+          expected_replacements: 2,
+        },
+        currentContent: content,
+        abortSignal,
+      });
+
+      expect(result.occurrences).toBe(2);
+      expect(result.newContent).toBe('  baz\n  qux\n  baz\n  qux\n');
+    });
   });
 
   describe('validateToolParams', () => {
