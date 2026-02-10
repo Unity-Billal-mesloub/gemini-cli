@@ -262,6 +262,9 @@ export class HookRunner {
       );
 
       if (process.env['CI'] === 'true' || process.env['VERBOSE'] === 'true') {
+        console.log(`[HookRunner] shellConfig: ${JSON.stringify(shellConfig)}`);
+        console.log(`[HookRunner] command: ${command}`);
+        console.log(`[HookRunner] cwd: ${input.cwd}`);
       }
 
       // Set up environment variables
@@ -330,6 +333,7 @@ export class HookRunner {
 
       child.on('exit', (code, signal) => {
         if (process.env['CI'] === 'true' || process.env['VERBOSE'] === 'true') {
+          console.log(`[HookRunner] Hook exit. code: ${code}, signal: ${signal}`);
         }
       });
 
@@ -339,6 +343,9 @@ export class HookRunner {
         const duration = Date.now() - startTime;
 
         if (process.env['CI'] === 'true' || process.env['VERBOSE'] === 'true') {
+          console.log(`[HookRunner] Hook closed. exitCode: ${exitCode}, duration: ${duration}ms`);
+          console.log(`[HookRunner] stdout: ${stdout}`);
+          console.log(`[HookRunner] stderr: ${stderr}`);
         }
 
         if (timedOut) {
@@ -432,6 +439,7 @@ export class HookRunner {
     exitCode: number,
   ): HookOutput {
     if (process.env['CI'] === 'true' || process.env['VERBOSE'] === 'true') {
+      console.log(`[HookRunner] convertPlainTextToHookOutput: exitCode=${exitCode}, text="${text}"`);
     }
     if (exitCode === EXIT_CODE_SUCCESS) {
       // Success - treat as system message or additional context
