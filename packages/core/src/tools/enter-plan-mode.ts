@@ -157,7 +157,21 @@ export class EnterPlanModeInvocation extends BaseToolInvocation<
       }
 
       // Escape the path for use in a regex. We double-escape backslashes for JSON matching.
-      const escapedPath = absolutePath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const escapedAbsPath = absolutePath.replace(
+        /[.*+?^${}()|[\]\\]/g,
+        '\\$&',
+      );
+
+      // Also allow the relative path if the user provided one, to match how tools might be called
+      let pathPattern = escapedAbsPath;
+      if (!path.isAbsolute(this.params.path)) {
+        const normalizedRelative = path
+          .normalize(this.params.path)
+          .replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        // Remove trailing slash from relative path if present for consistency
+        const cleanRelative = normalizedRelative.replace(/[\\/]$/, '');
+        pathPattern = `(?:${escapedAbsPath}|${cleanRelative})`;
+      }
 
       const allowedTools = this.params.allowed_tools || [
         'write_file',
@@ -168,7 +182,7 @@ export class EnterPlanModeInvocation extends BaseToolInvocation<
         this.config.addPolicyRule({
           toolName,
           // Allow the exact path OR any subpath (directory support)
-          argsPattern: new RegExp(`"file_path":"${escapedPath}(?:/.*)?"`),
+          argsPattern: new RegExp(`"file_path":"${pathPattern}(?:/.*)?"`),
           decision: PolicyDecision.ALLOW,
           priority: 80, // Higher than plan.toml defaults (70)
           modes: [ApprovalMode.PLAN],

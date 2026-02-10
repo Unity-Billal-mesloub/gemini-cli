@@ -219,6 +219,29 @@ describe('EnterPlanModeTool', () => {
       expect(`"file_path":"${exactMatch}"`).toMatch(regex);
     });
 
+    it('should allow relative paths in policy rules when relative path is provided', async () => {
+      const relativePath = 'conductor';
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const invocation = (tool as any).createInvocation(
+        { path: relativePath },
+        mockMessageBus as unknown as MessageBus,
+        'enter_plan_mode',
+        'Enter Plan Mode',
+      );
+
+      await invocation.execute(new AbortController().signal);
+
+      const rule = mockConfig.addPolicyRule.mock.calls.find(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (call: any[]) => call[0].toolName === 'write_file',
+      )[0];
+
+      const regex = rule.argsPattern;
+      const relativeFile = `${relativePath}/product.md`;
+
+      expect(`"file_path":"${relativeFile}"`).toMatch(regex);
+    });
+
     it('should fail if path validation fails', async () => {
       mockConfig.validatePathAccess.mockReturnValue('Access denied');
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
