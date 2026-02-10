@@ -343,9 +343,11 @@ export class PolicyEngine {
       );
 
       if (match) {
-        debugLogger.debug(
-          `[PolicyEngine.check] MATCHED rule: toolName=${rule.toolName}, decision=${rule.decision}, priority=${rule.priority}, argsPattern=${rule.argsPattern?.source || 'none'}`,
-        );
+        if (process.env['CI'] === 'true' || process.env['VERBOSE'] === 'true') {
+          console.log(
+            `[PolicyEngine.check] MATCHED rule: toolName=${rule.toolName}, decision=${rule.decision}, priority=${rule.priority}, source=${rule.source}`,
+          );
+        }
 
         if (isShellCommand && toolName) {
           const shellResult = await this.checkShellCommand(
@@ -372,9 +374,11 @@ export class PolicyEngine {
 
     // Default if no rule matched
     if (decision === undefined) {
-      debugLogger.debug(
-        `[PolicyEngine.check] NO MATCH - using default decision: ${this.defaultDecision}`,
-      );
+      if (process.env['CI'] === 'true' || process.env['VERBOSE'] === 'true') {
+        console.log(
+          `[PolicyEngine.check] NO MATCH - using default decision: ${this.defaultDecision}`,
+        );
+      }
       if (toolName && SHELL_TOOL_NAMES.includes(toolName)) {
         const shellResult = await this.checkShellCommand(
           toolName,
