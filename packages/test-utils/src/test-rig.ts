@@ -60,6 +60,14 @@ export function sanitizeTestName(name: string) {
     .replace(/-+/g, '-');
 }
 
+/**
+ * Normalizes a path for use in command-line arguments.
+ * On Windows, this converts backslashes to forward slashes.
+ */
+export function normalizePath(p: string): string {
+  return p.replace(/\\/g, '/');
+}
+
 // Helper to create detailed error messages
 export function createToolCallErrorMessage(
   expectedTools: string | string[],
@@ -442,7 +450,7 @@ export class TestRig {
     }
     const scriptPath = join(this.testDir, fileName);
     writeFileSync(scriptPath, content);
-    return scriptPath;
+    return normalizePath(scriptPath);
   }
 
   mkdir(dir: string) {
@@ -1289,6 +1297,11 @@ export class TestRig {
     const commandArgs = [...initialArgs];
 
     const envVars = this._getCleanEnv(options?.env);
+
+    // Ensure PATH is included for pty
+    if (!envVars['PATH'] && process.env['PATH']) {
+      envVars['PATH'] = process.env['PATH'];
+    }
 
     const ptyOptions: pty.IPtyForkOptions = {
       name: 'xterm-color',
