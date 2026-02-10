@@ -35,6 +35,7 @@ const DEFAULT_HOOK_TIMEOUT = 60000;
  * Exit code constants for hook execution
  */
 const EXIT_CODE_SUCCESS = 0;
+const EXIT_CODE_BLOCKING_ERROR = 2;
 const EXIT_CODE_NON_BLOCKING_ERROR = 1;
 
 /**
@@ -261,12 +262,6 @@ export class HookRunner {
         shellConfig.shell,
       );
 
-      if (process.env['CI'] === 'true' || process.env['VERBOSE'] === 'true') {
-        console.log(`[HookRunner] shellConfig: ${JSON.stringify(shellConfig)}`);
-        console.log(`[HookRunner] command: ${command}`);
-        console.log(`[HookRunner] cwd: ${input.cwd}`);
-      }
-
       // Set up environment variables
       const env = {
         ...sanitizeEnvironment(process.env, this.config.sanitizationConfig),
@@ -331,22 +326,10 @@ export class HookRunner {
         stderr += data.toString();
       });
 
-      child.on('exit', (code, signal) => {
-        if (process.env['CI'] === 'true' || process.env['VERBOSE'] === 'true') {
-          console.log(`[HookRunner] Hook exit. code: ${code}, signal: ${signal}`);
-        }
-      });
-
       // Handle process exit
       child.on('close', (exitCode) => {
         clearTimeout(timeoutHandle);
         const duration = Date.now() - startTime;
-
-        if (process.env['CI'] === 'true' || process.env['VERBOSE'] === 'true') {
-          console.log(`[HookRunner] Hook closed. exitCode: ${exitCode}, duration: ${duration}ms`);
-          console.log(`[HookRunner] stdout: ${stdout}`);
-          console.log(`[HookRunner] stderr: ${stderr}`);
-        }
 
         if (timedOut) {
           resolve({
@@ -403,10 +386,6 @@ export class HookRunner {
         clearTimeout(timeoutHandle);
         const duration = Date.now() - startTime;
 
-        if (process.env['CI'] === 'true' || process.env['VERBOSE'] === 'true') {
-          console.log(`[HookRunner] Hook process error: ${error.message}`);
-        }
-
         resolve({
           hookConfig,
           eventName,
@@ -442,9 +421,6 @@ export class HookRunner {
     text: string,
     exitCode: number,
   ): HookOutput {
-    if (process.env['CI'] === 'true' || process.env['VERBOSE'] === 'true') {
-      console.log(`[HookRunner] convertPlainTextToHookOutput: exitCode=${exitCode}, text="${text}"`);
-    }
     if (exitCode === EXIT_CODE_SUCCESS) {
       // Success - treat as system message or additional context
       return {
