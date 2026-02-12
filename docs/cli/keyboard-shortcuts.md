@@ -96,31 +96,31 @@ available combinations.
 
 #### App Controls
 
-| Action                                                                                                | Keys                       |
-| ----------------------------------------------------------------------------------------------------- | -------------------------- |
-| Toggle detailed error information.                                                                    | `F12`                      |
-| Toggle the full TODO list.                                                                            | `Ctrl + T`                 |
-| Show IDE context details.                                                                             | `Ctrl + G`                 |
-| Toggle Markdown rendering.                                                                            | `Alt + M`                  |
-| Toggle copy mode when in alternate buffer mode.                                                       | `Ctrl + S`                 |
-| Toggle YOLO (auto-approval) mode for tool calls.                                                      | `Ctrl + Y`                 |
-| Cycle through approval modes: default (prompt), auto_edit (auto-approve edits), and plan (read-only). | `Shift + Tab`              |
-| Expand a height-constrained response to show additional lines when not in alternate buffer mode.      | `Ctrl + O`<br />`Ctrl + S` |
-| Expand or collapse a paste placeholder when cursor is over placeholder.                               | `Ctrl + O`                 |
-| Toggle current background shell visibility.                                                           | `Ctrl + B`                 |
-| Toggle background shell list.                                                                         | `Ctrl + L`                 |
-| Kill the active background shell.                                                                     | `Ctrl + K`                 |
-| Confirm selection in background shell list.                                                           | `Enter`                    |
-| Dismiss background shell list.                                                                        | `Esc`                      |
-| Move focus from background shell to Gemini.                                                           | `Shift + Tab`              |
-| Move focus from background shell list to Gemini.                                                      | `Tab (no Shift)`           |
-| Show warning when trying to unfocus background shell via Tab.                                         | `Tab (no Shift)`           |
-| Show warning when trying to unfocus shell input via Tab.                                              | `Tab (no Shift)`           |
-| Move focus from Gemini to the active shell.                                                           | `Tab (no Shift)`           |
-| Move focus from the shell back to Gemini.                                                             | `Shift + Tab`              |
-| Clear the terminal screen and redraw the UI.                                                          | `Ctrl + L`                 |
-| Restart the application.                                                                              | `R`                        |
-| Suspend the application (not yet implemented).                                                        | `Ctrl + Z`                 |
+| Action                                                                                                | Keys             |
+| ----------------------------------------------------------------------------------------------------- | ---------------- |
+| Toggle detailed error information.                                                                    | `F12`            |
+| Toggle the full TODO list.                                                                            | `Ctrl + T`       |
+| Show IDE context details.                                                                             | `Ctrl + G`       |
+| Toggle Markdown rendering.                                                                            | `Alt + M`        |
+| Toggle copy mode when in alternate buffer mode.                                                       | `Ctrl + S`       |
+| Toggle YOLO (auto-approval) mode for tool calls.                                                      | `Ctrl + Y`       |
+| Cycle through approval modes: default (prompt), auto_edit (auto-approve edits), and plan (read-only). | `Shift + Tab`    |
+| Expand and collapse blocks of content when not in alternate buffer mode.                              | `Ctrl + O`       |
+| Expand or collapse a paste placeholder when cursor is over placeholder.                               | `Ctrl + O`       |
+| Toggle current background shell visibility.                                                           | `Ctrl + B`       |
+| Toggle background shell list.                                                                         | `Ctrl + L`       |
+| Kill the active background shell.                                                                     | `Ctrl + K`       |
+| Confirm selection in background shell list.                                                           | `Enter`          |
+| Dismiss background shell list.                                                                        | `Esc`            |
+| Move focus from background shell to Gemini.                                                           | `Shift + Tab`    |
+| Move focus from background shell list to Gemini.                                                      | `Tab (no Shift)` |
+| Show warning when trying to unfocus background shell via Tab.                                         | `Tab (no Shift)` |
+| Show warning when trying to unfocus shell input via Tab.                                              | `Tab (no Shift)` |
+| Move focus from Gemini to the active shell.                                                           | `Tab (no Shift)` |
+| Move focus from the shell back to Gemini.                                                             | `Shift + Tab`    |
+| Clear the terminal screen and redraw the UI.                                                          | `Ctrl + L`       |
+| Restart the application.                                                                              | `R`              |
+| Suspend the application (not yet implemented).                                                        | `Ctrl + Z`       |
 
 <!-- KEYBINDINGS-AUTOGEN:END -->
 
@@ -141,7 +141,7 @@ available combinations.
   single-line input, navigate backward or forward through prompt history.
 - `Number keys (1-9, multi-digit)` inside selection dialogs: Jump directly to
   the numbered radio option and confirm when the full number is entered.
-- `Ctrl + O`: Expand or collapse paste placeholders (`[Pasted Text: X lines]`)
-  inline when the cursor is over the placeholder.
+- `Ctrl + O`: Expand and collapse blocks of content (like paste placeholders or
+  height-constrained responses).
 - `Double-click` on a paste placeholder (alternate buffer mode only): Expand to
   view full content inline. Double-click again to collapse.
