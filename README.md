@@ -380,14 +380,3 @@ for planned features and priorities.
 
 See the [Uninstall Guide](docs/cli/uninstall.md) for removal instructions.
 
-## 📄 Legal
-
-- **License**: [Apache License 2.0](LICENSE)
-- **Terms of Service**: [Terms & Privacy](./docs/tos-privacy.md)
-- **Security**: [Security Policy](SECURITY.md)
-
----
-
-<p align="center">
-  Built with ❤️ by Google and the open source community
-</p>
