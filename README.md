@@ -1,10 +1,10 @@
 # Gemini CLI
 
-[![Gemini CLI CI](https://github.com/google-gemini/gemini-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/google-gemini/gemini-cli/actions/workflows/ci.yml)
-[![Gemini CLI E2E (Chained)](https://github.com/google-gemini/gemini-cli/actions/workflows/chained_e2e.yml/badge.svg)](https://github.com/google-gemini/gemini-cli/actions/workflows/chained_e2e.yml)
+[![Gemini CLI CI](https://github.com/Unity-Billal-mesloub/gemini-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/google-gemini/gemini-cli/actions/workflows/ci.yml)
+[![Gemini CLI E2E (Chained)](https://github.com/Unity-Billal-mesloub/gemini-cli/actions/workflows/chained_e2e.yml/badge.svg)](https://github.com/Unity-Billal-mesloub/gemini-cli/actions/workflows/chained_e2e.yml)
 [![Version](https://img.shields.io/npm/v/@google/gemini-cli)](https://www.npmjs.com/package/@google/gemini-cli)
 [![License](https://img.shields.io/github/license/google-gemini/gemini-cli)](https://github.com/google-gemini/gemini-cli/blob/main/LICENSE)
-[![View Code Wiki](https://assets.codewiki.google/readme-badge/static.svg)](https://codewiki.google/github.com/google-gemini/gemini-cli?utm_source=badge&utm_medium=github&utm_campaign=github.com/google-gemini/gemini-cli)
+[![View Code Wiki](https://assets.codewiki.google/readme-badge/static.svg)](https://codewiki.google/github.com/Unity-Billal-mesloub/gemini-cli?utm_source=badge&utm_medium=github&utm_campaign=github.com/Unity-Billal-mesloub/gemini-cli)
 
 ![Gemini CLI Screenshot](./docs/assets/gemini-screenshot.png)
 
@@ -119,7 +119,7 @@ npm install -g @google/gemini-cli@nightly
 - Automate operational tasks like querying pull requests or handling complex
   rebases
 - Use MCP servers to connect new capabilities, including
-  [media generation with Imagen, Veo or Lyria](https://github.com/GoogleCloudPlatform/vertex-ai-creative-studio/tree/main/experiments/mcp-genmedia)
+  [media generation with Imagen, Veo or Lyria](https://github.com/Unity-Billal-mesloub/vertex-ai-creative-studio/tree/main/experiments/mcp-genmedia)
 - Run non-interactively in scripts for workflow automation
 
 ### Advanced Capabilities
@@ -133,7 +133,7 @@ npm install -g @google/gemini-cli@nightly
 ### GitHub Integration
 
 Integrate Gemini CLI directly into your GitHub workflows with
-[**Gemini CLI GitHub Action**](https://github.com/google-github-actions/run-gemini-cli):
+[**Gemini CLI GitHub Action**](https://github.com/Unity-Billal-mesloub/run-gemini-cli):
 
 - **Pull Request Reviews**: Automated code review with contextual feedback and
   suggestions
@@ -362,7 +362,7 @@ encourage the community to:
 See our [Contributing Guide](./CONTRIBUTING.md) for development setup, coding
 standards, and how to submit pull requests.
 
-Check our [Official Roadmap](https://github.com/orgs/google-gemini/projects/11)
+Check our [Official Roadmap](https://github.com/orgs/google-gemini/projects)
 for planned features and priorities.
 
 ## 📖 Resources
