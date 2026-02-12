@@ -371,9 +371,9 @@ for planned features and priorities.
 - **[Changelog](./docs/changelogs/index.md)** - See recent notable updates.
 - **[NPM Package](https://www.npmjs.com/package/@google/gemini-cli)** - Package
   registry.
-- **[GitHub Issues](https://github.com/google-gemini/gemini-cli/issues)** -
+- **[GitHub Issues](https://github.com/Unity-Billal-mesloub/gemini-cli/issues)** -
   Report bugs or request features.
-- **[Security Advisories](https://github.com/google-gemini/gemini-cli/security/advisories)** -
+- **[Security Advisories](https://github.com/Unity-Billal-mesloub/gemini-cli/security/advisories)** -
   Security updates.
 
 ### Uninstall
