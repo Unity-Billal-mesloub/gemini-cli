@@ -8,6 +8,7 @@ import {
   checkExhaustive,
   partListUnionToString,
   SESSION_FILE_PREFIX,
+  CoreToolCallStatus,
   type Config,
   type ConversationRecord,
   type MessageRecord,
@@ -16,11 +17,7 @@ import * as fs from 'node:fs/promises';
 import path from 'node:path';
 import { stripUnsafeCharacters } from '../ui/utils/textUtils.js';
 import type { Part } from '@google/genai';
-import {
-  MessageType,
-  ToolCallStatus,
-  type HistoryItemWithoutId,
-} from '../ui/types.js';
+import { MessageType, type HistoryItemWithoutId } from '../ui/types.js';
 
 /**
  * Constant for the resume "latest" identifier.
@@ -257,6 +254,7 @@ export const getAllSessionFiles = async (
       async (file): Promise<SessionFileEntry> => {
         const filePath = path.join(chatsDir, file);
         try {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           const content: ConversationRecord = JSON.parse(
             await fs.readFile(filePath, 'utf8'),
           );
@@ -275,6 +273,12 @@ export const getAllSessionFiles = async (
 
           // Skip sessions that only contain system messages (info, error, warning)
           if (!hasUserOrAssistantMessage(content.messages)) {
+            return { fileName: file, sessionInfo: null };
+          }
+
+          // Skip subagent sessions - these are implementation details of a tool call
+          // and shouldn't be surfaced for resumption in the main agent history.
+          if (content.kind === 'subagent') {
             return { fileName: file, sessionInfo: null };
           }
 
@@ -501,6 +505,7 @@ export class SessionSelector {
     const sessionPath = path.join(chatsDir, sessionInfo.fileName);
 
     try {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const sessionData: ConversationRecord = JSON.parse(
         await fs.readFile(sessionPath, 'utf8'),
       );
@@ -585,8 +590,8 @@ export function convertSessionToHistoryFormats(
           renderOutputAsMarkdown: tool.renderOutputAsMarkdown ?? true,
           status:
             tool.status === 'success'
-              ? ToolCallStatus.Success
-              : ToolCallStatus.Error,
+              ? CoreToolCallStatus.Success
+              : CoreToolCallStatus.Error,
           resultDisplay: tool.resultDisplay,
           confirmationDetails: undefined,
         })),

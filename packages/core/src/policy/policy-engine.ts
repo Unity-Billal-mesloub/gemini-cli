@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 Google LLC
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -476,6 +476,24 @@ export class PolicyEngine {
   }
 
   /**
+   * Remove rules matching a specific tier (priority band).
+   */
+  removeRulesByTier(tier: number): void {
+    this.rules = this.rules.filter(
+      (rule) => Math.floor(rule.priority ?? 0) !== tier,
+    );
+  }
+
+  /**
+   * Remove checkers matching a specific tier (priority band).
+   */
+  removeCheckersByTier(tier: number): void {
+    this.checkers = this.checkers.filter(
+      (checker) => Math.floor(checker.priority ?? 0) !== tier,
+    );
+  }
+
+  /**
    * Remove rules for a specific tool.
    * If source is provided, only rules matching that source are removed.
    */
@@ -538,8 +556,10 @@ export class PolicyEngine {
     let globalVerdict: PolicyDecision | undefined;
 
     for (const rule of this.rules) {
-      // We only care about rules without args pattern for exclusion from the model
       if (rule.argsPattern) {
+        if (rule.toolName && rule.decision !== PolicyDecision.DENY) {
+          processedTools.add(rule.toolName);
+        }
         continue;
       }
 
